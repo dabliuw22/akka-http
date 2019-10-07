@@ -83,7 +83,9 @@ object SimpleServer extends App {
 
   // Async via Akka streams
   val streamsBasedRequestHandler: Flow[HttpRequest, HttpResponse, _] = Flow[HttpRequest].map {
-    case HttpRequest(HttpMethods.GET, Uri.Path("/async"), _, _, _) =>
+    case HttpRequest(HttpMethods.GET, uri @ Uri.Path("/async"), _, _, _) =>
+      val queryParams = uri.query()
+      if (!queryParams.isEmpty) queryParams.foreach(param => println(param))
       HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/html(UTF-8)`,
         """
           |<html>
