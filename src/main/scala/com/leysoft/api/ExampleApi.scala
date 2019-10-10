@@ -1,7 +1,9 @@
 package com.leysoft.api
 
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.event.LoggingAdapter
+import akka.http.javadsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.javadsl.server.{MalformedQueryParamRejection, MalformedRequestContentRejection}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
@@ -10,6 +12,7 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, MethodRejection, MissingQueryParamRejection, RejectionHandler, Route}
 import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{Flow, Sink, Source}
 import spray.json.DefaultJsonProtocol
 import spray.json._
 
@@ -48,8 +51,13 @@ trait ErrorJsonProtocol extends DefaultJsonProtocol {
 }
 
 case class AuthorRouter(authorRepository: AuthorRepository, logger: LoggingAdapter)
-                       (implicit executionContext: ExecutionContext)
+                       (implicit executionContext: ExecutionContext, materializer: ActorMaterializer)
   extends SprayJsonSupport with AuthorJsonProtocol {
+
+  /**
+   * For streams
+   */
+  implicit val jsonStreamingSupport: JsonEntityStreamingSupport = EntityStreamingSupport.json()
 
   def route: Route = pathPrefix("authors") {
     pathEnd {
@@ -67,15 +75,22 @@ case class AuthorRouter(authorRepository: AuthorRepository, logger: LoggingAdapt
     }
   }
 
+  // Streams
   private def getAll: Route = get {
     logger.info("GET - All")
-    val futureAuthors = authorRepository.findAll
-    complete(futureAuthors)
+    val authors: Source[Author, NotUsed] = Source(authorRepository.findAll)
+    complete(authors)
   }
 
   private def create: Route = (post & entity(as[Author])) { author =>
     logger.info(s"POST - Author: ${author.toJson.prettyPrint}")
-    val savedAuthor = authorRepository.save(author)
+    val source: Source[Author, NotUsed] = Source.single(author)
+    val flow: Flow[Author, Option[Author], NotUsed] = Flow[Author].map { a =>
+      authorRepository.save(a)
+      Some(author)
+    }
+    val sink: Sink[Option[Author], Future[Option[Author]]] = Sink.head[Option[Author]]
+    val savedAuthor = source.via(flow).runWith(sink)
     complete(savedAuthor)
   }
 
@@ -92,12 +107,12 @@ case class AuthorRepository() (implicit executionContext: ExecutionContext) {
     2 -> Author(2, "Author2"),
     3 -> Author(3, "Author3"))
 
-  def save(author: Author): Future[Author] =
-    Future(authors.put(author.id, author)).map { _ => author }
+  def save(author: Author): Option[Author] =
+    authors.put(author.id, author).map { _ => author }
 
   def findById(id: Int): Option[Author] = authors.get(id)
 
-  def findAll: Future[List[Author]] = Future(List.from(authors.values))
+  def findAll: List[Author] = List.from(authors.values)
 }
 
 object ErrorHandler extends SprayJsonSupport with ErrorJsonProtocol {
