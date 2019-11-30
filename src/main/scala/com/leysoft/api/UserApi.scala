@@ -12,7 +12,7 @@ import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Keep, Source}
 import pdi.jwt.{JwtAlgorithm, JwtClaim, JwtSprayJson}
-import spray.json.DefaultJsonProtocol
+import spray.json.{DefaultJsonProtocol, JsValue}
 
 import scala.collection.mutable.Map
 
@@ -72,8 +72,20 @@ case class UserRouter(userService: UserService) (implicit jwtService: JwtService
 
   def route: Route = concat(create, getByUsername, getAllActive, deactivate)
 
-  private def create: Route = (path(`prefix`) & post & entity(as[User])) { user =>
+  /*private def create: Route = (path(`prefix`) & post & entity(as[User])) { user =>
     complete(userService.create(user))
+  }*/
+  private def create: Route = post {
+    path(`prefix`) {
+      jsonBody { body =>
+        val user = User(
+          username = body("username").convertTo[String],
+          password = body("password").convertTo[String],
+          active = body("active").convertTo[Boolean]
+        )
+        complete(userService.create(user))
+      }
+    }
   }
 
   private def getByUsername: Route = (get & path(`prefix` / Segment) & headerValueByName("Authorization")) {
@@ -87,6 +99,10 @@ case class UserRouter(userService: UserService) (implicit jwtService: JwtService
 
   private def deactivate: Route = (delete & path(`prefix` / Segment)) { username =>
     complete(userService.delete(username))
+  }
+
+  private def jsonBody[T](handler: Map[String, JsValue] => Route): Route = {
+    entity(as[JsValue])(json => handler(json.asJsObject.fields))
   }
 }
 
