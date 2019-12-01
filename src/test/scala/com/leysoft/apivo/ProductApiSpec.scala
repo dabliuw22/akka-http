@@ -2,9 +2,9 @@ package com.leysoft.apivo
 
 import akka.http.scaladsl.model.{ContentTypes, StatusCodes}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import org.scalatest.{Matchers, WordSpec}
+import com.leysoft.Specification
 
-final class ProductApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
+final class ProductApiSpec extends Specification with ScalatestRouteTest {
 
   "ProductApi" should {
     "Return All Products" in {

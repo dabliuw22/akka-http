@@ -15,6 +15,8 @@ val logbackParent = "ch.qos.logback"
 val logbackVersion = "1.2.3"
 val scalaTestParent = "org.scalatest"
 val scalaTestVersion = "3.0.8"
+val scalaMockParent = "org.scalamock"
+val scalaMockVersion = "4.4.0"
 
 libraryDependencies ++= Seq(
   akkaParent %% "akka-stream" % akkaVersion,
@@ -25,6 +27,7 @@ libraryDependencies ++= Seq(
   logbackParent % "logback-classic" % logbackVersion,
 
   scalaTestParent %% "scalatest" % scalaTestVersion % Test,
+  scalaMockParent %% "scalamock" % scalaMockVersion % Test,
   akkaParent %% "akka-stream-testkit" % akkaVersion % Test,
   akkaParent %% "akka-http-testkit" % akkaHttpVersion % Test,
   akkaParent %% "akka-testkit" % akkaVersion % Test

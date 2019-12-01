@@ -101,7 +101,7 @@ case class UserRouter(userService: UserService) (implicit jwtService: JwtService
     complete(userService.delete(username))
   }
 
-  private def jsonBody[T](handler: Map[String, JsValue] => Route): Route = {
+  private def jsonBody[T](handler: collection.immutable.Map[String, JsValue] => Route): Route = {
     entity(as[JsValue])(json => handler(json.asJsObject.fields))
   }
 }
