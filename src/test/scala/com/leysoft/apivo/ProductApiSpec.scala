@@ -3,8 +3,11 @@ package com.leysoft.apivo
 import akka.http.scaladsl.model.{ContentTypes, StatusCodes}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.leysoft.Specification
+import org.scalatest.Suite
 
-final class ProductApiSpec extends Specification with ScalatestRouteTest {
+final class ProductApiSpec extends Specification with ScalatestRouteTest { this: Suite =>
+
+  override protected def beforeEach(): Unit = super.beforeEach()
 
   "ProductApi" should {
     "Return All Products" in {
